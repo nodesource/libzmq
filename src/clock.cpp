@@ -58,7 +58,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-int clock_gettime (int clock_id, timespec *ts)
+int alt_clock_gettime (int clock_id, timespec *ts)
 {
     // The clock_id specified is not supported on this system.
     if (clock_id != CLOCK_REALTIME) {
@@ -84,16 +84,18 @@ static zmq::mutex_t compatible_get_tick_count64_mutex;
 
 ULONGLONG compatible_get_tick_count64()
 {
-  compatible_get_tick_count64_mutex.lock();
+  zmq::scoped_lock_t locker(compatible_get_tick_count64_mutex);
+
   static DWORD s_wrap = 0;
   static DWORD s_last_tick = 0;
   const DWORD current_tick = ::GetTickCount();
+
   if (current_tick < s_last_tick)
     ++s_wrap;
 
   s_last_tick = current_tick;
   const ULONGLONG result = (static_cast<ULONGLONG>(s_wrap) << 32) + static_cast<ULONGLONG>(current_tick);
-  compatible_get_tick_count64_mutex.unlock();
+
   return result;
 }
 
@@ -150,7 +152,12 @@ uint64_t zmq::clock_t::now_us ()
 
     //  Use POSIX clock_gettime function to get precise monotonic time.
     struct timespec tv;
+
+#if defined ZMQ_HAVE_OSX && __MAC_OS_X_VERSION_MIN_REQUIRED < 101200 // less than macOS 10.12    
+    int rc = alt_clock_gettime (CLOCK_MONOTONIC, &tv);
+#else
     int rc = clock_gettime (CLOCK_MONOTONIC, &tv);
+#endif
     // Fix case where system has clock_gettime but CLOCK_MONOTONIC is not supported.
     // This should be a configuration check, but I looked into it and writing an
     // AC_FUNC_CLOCK_MONOTONIC seems beyond my powers.
@@ -232,6 +239,8 @@ uint64_t zmq::clock_t::rdtsc ()
     asm("\tstck\t%0\n" : "=Q" (tsc) : : "cc");
     return(tsc);
 #else
-    return 0;
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)(ts.tv_sec) * 1000000000 + ts.tv_nsec;
 #endif
 }
