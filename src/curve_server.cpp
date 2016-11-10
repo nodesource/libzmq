@@ -38,6 +38,10 @@
 #include "curve_server.hpp"
 #include "wire.hpp"
 
+#ifndef DEBUG
+#define puts(m) do {} while(0)
+#endif
+
 zmq::curve_server_t::curve_server_t (session_base_t *session_,
                                      const std::string &peer_address_,
                                      const options_t &options_) :
