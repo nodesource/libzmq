@@ -1695,6 +1695,7 @@ void zmq::socket_base_t::monitor_event (int event_, intptr_t value_, const std::
 
     if (monitor_socket) {
         //  Send event in first frame
+        int flags;
         zmq_msg_t msg;
         zmq_msg_init_size (&msg, 6);
         uint8_t *data = (uint8_t *) zmq_msg_data (&msg);
@@ -1703,12 +1704,17 @@ void zmq::socket_base_t::monitor_event (int event_, intptr_t value_, const std::
         uint32_t value = (uint32_t) value_;
         memcpy (data + 0, &event, sizeof(event));
         memcpy (data + 2, &value, sizeof(value));
-        zmq_sendmsg (monitor_socket, &msg, ZMQ_SNDMORE);
+        flags = ZMQ_SNDMORE;
+        if (event_ == ZMQ_EVENT_MONITOR_STOPPED) flags |= ZMQ_DONTWAIT;
+        int rc = zmq_sendmsg (monitor_socket, &msg, flags);
+        if (rc < 0) return;
 
         //  Send address in second frame
         zmq_msg_init_size (&msg, addr_.size());
         memcpy (zmq_msg_data (&msg), addr_.c_str (), addr_.size ());
-        zmq_sendmsg (monitor_socket, &msg, 0);
+        flags = 0;
+        if (event_ == ZMQ_EVENT_MONITOR_STOPPED) flags |= ZMQ_DONTWAIT;
+        zmq_sendmsg (monitor_socket, &msg, flags);
     }
 }
 
