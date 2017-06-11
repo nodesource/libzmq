@@ -8,6 +8,7 @@
       '_REENTRANT',
       '_THREAD_SAFE',
       'ZMQ_CUSTOM_PLATFORM_HPP',
+      'ZMQ_BUILD_DRAFT_API',
       'ZMQ_GYP_BUILD'
     ],
     'conditions': [
