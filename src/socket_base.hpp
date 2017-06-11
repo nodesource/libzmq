@@ -133,7 +133,7 @@ namespace zmq
         void event_closed (const std::string &addr_, zmq::fd_t fd_);
         void event_close_failed (const std::string &addr_, int err_);
         void event_disconnected (const std::string &addr_, zmq::fd_t fd_);
-        void event_handshake_failed(const std::string &addr_, int err_);
+        void event_handshake_failed(const std::string &addr_, int err_, const std::string &remote_addr_ = std::string());
         void event_handshake_succeed(const std::string &addr_, int err_);
 
     protected:
@@ -184,10 +184,10 @@ namespace zmq
 
     private:
         // test if event should be sent and then dispatch it        
-        void event(const std::string &addr_, intptr_t fd_, int type_);
+        void event(const std::string &addr_, intptr_t fd_, int type_, const std::string& remote_addr_ = std::string());
 
         // Socket event data dispatch
-        void monitor_event (int event_, intptr_t value_, const std::string& addr_);
+        void monitor_event (int event_, intptr_t value_, const std::string& addr_, const std::string& remote_addr_ = std::string());
 
         // Monitor socket cleanup
         void stop_monitor (bool send_monitor_stopped_event_ = true);

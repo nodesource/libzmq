@@ -34,6 +34,7 @@
 
 #ifndef ZMQ_HAVE_WINDOWS
 #include <unistd.h>
+#include <arpa/inet.h>
 #endif
 
 #include <new>
@@ -975,8 +976,24 @@ void zmq::stream_engine_t::error (error_reason_t reason)
     }
     zmq_assert (session);
 #ifdef ZMQ_BUILD_DRAFT_API
-    if(mechanism == NULL || mechanism->status() == mechanism_t::handshaking)
-        socket->event_handshake_failed(endpoint, (int) s);
+    if(mechanism == NULL || mechanism->status() == mechanism_t::handshaking) {
+        struct sockaddr_storage addr = {0};
+        socklen_t slen = sizeof(addr);
+        if (getpeername(s, reinterpret_cast<struct sockaddr*>(&addr), &slen) == 0) {
+          char ipstr[100];
+          if (addr.ss_family == AF_INET) {
+              struct sockaddr_in *s = (struct sockaddr_in *)&addr;
+              inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof ipstr);
+          } else if(addr.ss_family == AF_INET6) {
+              struct sockaddr_in6 *s = (struct sockaddr_in6 *)&addr;
+              inet_ntop(AF_INET6, &s->sin6_addr, ipstr, sizeof ipstr);
+          }
+          std::string remote_addr(ipstr);
+          socket->event_handshake_failed(endpoint, (int) s, remote_addr);
+        } else {
+          socket->event_handshake_failed(endpoint, (int) s);
+        }
+    }
 #endif
     socket->event_disconnected (endpoint, (int) s);
     session->flush ();

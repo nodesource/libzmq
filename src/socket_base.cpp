@@ -1688,9 +1688,9 @@ void zmq::socket_base_t::event_disconnected (const std::string &addr_, zmq::fd_t
     event(addr_, fd_, ZMQ_EVENT_DISCONNECTED);
 }
 
-void zmq::socket_base_t::event_handshake_failed(const std::string &addr_, int err_)
+void zmq::socket_base_t::event_handshake_failed(const std::string &addr_, int err_, const std::string &remote_addr_)
 {
-    event(addr_, err_, ZMQ_EVENT_HANDSHAKE_FAILED);
+    event(addr_, err_, ZMQ_EVENT_HANDSHAKE_FAILED, remote_addr_);
 }
 
 void zmq::socket_base_t::event_handshake_succeed(const std::string &addr_, int err_)
@@ -1698,17 +1698,17 @@ void zmq::socket_base_t::event_handshake_succeed(const std::string &addr_, int e
     event(addr_, err_, ZMQ_EVENT_HANDSHAKE_SUCCEED);
 }
 
-void zmq::socket_base_t::event(const std::string &addr_, intptr_t value_, int type_)
+void zmq::socket_base_t::event(const std::string &addr_, intptr_t value_, int type_, const std::string &remote_addr_)
 {
     scoped_lock_t lock(monitor_sync);
     if (monitor_events & type_)
     {
-        monitor_event (type_, value_, addr_);
+        monitor_event (type_, value_, addr_, remote_addr_);
     }
 }
 
 //  Send a monitor event
-void zmq::socket_base_t::monitor_event (int event_, intptr_t value_, const std::string &addr_)
+void zmq::socket_base_t::monitor_event (int event_, intptr_t value_, const std::string &addr_, const std::string &remote_addr_)
 {
     // this is a private method which is only called from
     // contexts where the mutex has been locked before
@@ -1732,9 +1732,18 @@ void zmq::socket_base_t::monitor_event (int event_, intptr_t value_, const std::
         //  Send address in second frame
         zmq_msg_init_size (&msg, addr_.size());
         memcpy (zmq_msg_data (&msg), addr_.c_str (), addr_.size ());
-        flags = 0;
+        flags = (remote_addr_.size() > 0) ? ZMQ_SNDMORE : 0;
         if (event_ == ZMQ_EVENT_MONITOR_STOPPED) flags |= ZMQ_DONTWAIT;
         zmq_sendmsg (monitor_socket, &msg, flags);
+
+        if (remote_addr_.size() > 0) {
+            //  Send possible remote address in third frame
+            zmq_msg_init_size (&msg, remote_addr_.size());
+            memcpy (zmq_msg_data (&msg), remote_addr_.c_str (), remote_addr_.size ());
+            flags = 0;
+            if (event_ == ZMQ_EVENT_MONITOR_STOPPED) flags |= ZMQ_DONTWAIT;
+            zmq_sendmsg (monitor_socket, &msg, flags);
+        }
     }
 }
 
