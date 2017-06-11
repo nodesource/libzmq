@@ -10,7 +10,7 @@
 %endif
 %define lib_name libzmq5
 Name:          zeromq
-Version:       4.2.0
+Version:       4.2.3
 Release:       1%{?dist}
 Summary:       The ZeroMQ messaging library
 Group:         Applications/Internet
@@ -23,8 +23,6 @@ BuildRequires:  autoconf automake libtool libsodium-devel glib2-devel
 %if ! (0%{?fedora} > 12 || 0%{?rhel} > 5)
 BuildRequires:  e2fsprogs-devel
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-%else
-BuildRequires:  libuuid-devel
 %endif
 %if %{with pgm}
 BuildRequires:  openpgm-devel
@@ -103,6 +101,20 @@ multiple transport protocols and more.
 
 This package contains ZeroMQ related development libraries and header files.
 
+%package -n libzmq-tools
+Summary:   ZeroMQ tools
+Group:     Productivity/Networking/Web/Servers
+
+%description -n libzmq-tools
+The 0MQ lightweight messaging kernel is a library which extends the
+standard socket interfaces with features traditionally provided by
+specialised messaging middleware products. 0MQ sockets provide an
+abstraction of asynchronous message queues, multiple messaging
+patterns, message filtering (subscriptions), seamless access to
+multiple transport protocols and more.
+
+This package contains tools such as curve_keygen to use with libzmq.
+
 %prep
 %setup -q
 
@@ -165,18 +177,17 @@ autoreconf -fi
 %{_libdir}/libzmq.so
 
 %{_mandir}/man3/zmq*
-%{_mandir}/man7/zmq_curve.7.gz
-%{_mandir}/man7/zmq_inproc.7.gz
-%{_mandir}/man7/zmq_ipc.7.gz
-%{_mandir}/man7/zmq_null.7.gz
-%{_mandir}/man7/zmq_pgm.7.gz
-%{_mandir}/man7/zmq_plain.7.gz
-%{_mandir}/man7/zmq_tcp.7.gz
-%{_mandir}/man7/zmq_tipc.7.gz
-%{_mandir}/man7/zmq_udp.7.gz
-%{_mandir}/man7/zmq_vmci.7.gz
+# skip man7/zmq.7.gz
+%{_mandir}/man7/zmq_*
+
+%files -n libzmq-tools
+%defattr(-,root,root,-)
+%{_bindir}/curve_keygen
 
 %changelog
+* Sun Nov 06 2016 Luca Boccassi <luca.boccassi@gmail.com>
+- Add libzmq-tool to package curve_keygen in /usr/bin
+
 * Sun Jul 31 2016 Luca Boccassi <luca.boccassi@gmail.com>
 - Follow RPM standards and rename zeromq to libzmq5
 

@@ -84,6 +84,7 @@ if(NOT WIN32)
           test_router_mandatory_hwm
           test_use_fd_ipc
           test_use_fd_tcp
+          test_zmq_poll_fd
   )
   if(HAVE_FORK)
     list(APPEND tests test_fork)
@@ -132,13 +133,12 @@ ENDIF (ENABLE_DRAFTS)
 if(WIN32)
     add_definitions(-DZMQ_CUSTOM_PLATFORM_HPP)
     add_definitions(-D_WINSOCK_DEPRECATED_NO_WARNINGS)
-    include_directories(../builds/msvc)
     # Same name on 64bit systems
     link_libraries(Ws2_32.lib)
 endif()
 
 # add library and include dirs for all targets
-link_libraries(libzmq)
+link_libraries(libzmq ${OPTIONAL_LIBRARIES})
 include_directories("${CMAKE_SOURCE_DIR}/../include")
 
 foreach(test ${tests})
@@ -156,6 +156,7 @@ foreach(test ${tests})
         link_directories(${test} PRIVATE "${CMAKE_SOURCE_DIR}/../lib")
     endif()
   endif()
+
 
   if(RT_LIBRARY)
     target_link_libraries(${test} ${RT_LIBRARY} )

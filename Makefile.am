@@ -390,7 +390,6 @@ test_apps = \
 	tests/test_proxy_terminate \
 	tests/test_getsockopt_memset \
 	tests/test_setsockopt \
-	tests/test_many_sockets \
 	tests/test_diffserv \
 	tests/test_connect_rid \
 	tests/test_bind_src_address \
@@ -629,6 +628,7 @@ test_apps += \
 	tests/test_reqrep_ipc \
 	tests/test_use_fd_ipc \
 	tests/test_use_fd_tcp \
+	tests/test_zmq_poll_fd \
 	tests/test_timeo \
 	tests/test_filter_ipc
 
@@ -663,6 +663,9 @@ tests_test_use_fd_tcp_SOURCES = \
 	tests/test_use_fd_tcp.cpp \
 	tests/testutil.hpp
 tests_test_use_fd_tcp_LDADD = src/libzmq.la
+
+tests_test_zmq_poll_fd_SOURCES = tests/test_zmq_poll_fd.cpp
+tests_test_zmq_poll_fd_LDADD = src/libzmq.la
 
 if HAVE_FORK
 if !VALGRIND_ENABLED
@@ -713,8 +716,17 @@ tests_test_term_endpoint_tipc_LDADD = src/libzmq.la
 
 endif
 
+if BUILD_GSSAPI
+test_apps += tests/test_security_gssapi
+
+tests_test_security_gssapi_SOURCES = tests/test_security_gssapi.cpp
+tests_test_security_gssapi_LDADD = src/libzmq.la
+
+endif
+
 if ON_LINUX
-test_apps += tests/test_abstract_ipc
+test_apps += tests/test_abstract_ipc \
+		tests/test_many_sockets
 
 tests_test_abstract_ipc_SOURCES = tests/test_abstract_ipc.cpp
 tests_test_abstract_ipc_LDADD = src/libzmq.la
@@ -787,6 +799,7 @@ XFAIL_TESTS += test_ipc_wildcard \
 endif
 
 EXTRA_DIST = \
+	FindSodium.cmake \
 	CMakeLists.txt \
 	autogen.sh	\
 	version.sh	\

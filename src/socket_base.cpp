@@ -204,9 +204,14 @@ zmq::socket_base_t::socket_base_t (ctx_t *parent_, uint32_t tid_, int sid_, bool
     options.linger = parent_->get (ZMQ_BLOCKY)? -1: 0;
 
     if (thread_safe)
-        mailbox = new mailbox_safe_t(&sync);
+    {
+        mailbox = new (std::nothrow) mailbox_safe_t(&sync);
+        zmq_assert (mailbox);
+    }
     else {
-        mailbox_t *m = new mailbox_t();
+        mailbox_t *m = new (std::nothrow) mailbox_t();
+        zmq_assert (m);
+
         if (m->get_fd () != retired_fd)
             mailbox = m;
         else {
@@ -842,12 +847,13 @@ int zmq::socket_base_t::connect (const char *addr_)
         //  Following code is quick and dirty check to catch obvious errors,
         //  without trying to be fully accurate.
         const char *check = address.c_str ();
-        if (isalnum (*check) || isxdigit (*check) || *check == '[') {
+        if (isalnum (*check) || isxdigit (*check) || *check == '[' || *check == ':') {
             check++;
             while (isalnum  (*check)
                 || isxdigit (*check)
                 || *check == '.' || *check == '-' || *check == ':' || *check == '%'
                 || *check == ';' || *check == '['  || *check == ']' || *check == '_'
+                || *check == '*'
             ) {
                 check++;
             }
@@ -1205,7 +1211,7 @@ int zmq::socket_base_t::recv (msg_t *msg_, int flags_)
 
     //  If the message cannot be fetched immediately, there are two scenarios.
     //  For non-blocking recv, commands are processed in case there's an
-    //  activate_reader command already waiting int a command pipe.
+    //  activate_reader command already waiting in a command pipe.
     //  If it's not, return EAGAIN.
     if (flags_ & ZMQ_DONTWAIT || options.rcvtimeo == 0) {
         if (unlikely (process_commands (0, false) != 0)) {
@@ -1298,7 +1304,8 @@ void zmq::socket_base_t::start_reaping (poller_t *poller_)
     else {
         scoped_optional_lock_t sync_lock(thread_safe ? &sync : NULL);
 
-        reaper_signaler =  new signaler_t();
+        reaper_signaler = new (std::nothrow) signaler_t();
+        zmq_assert (reaper_signaler);
 
         //  Add signaler to the safe mailbox
         fd = reaper_signaler->get_fd();
@@ -1414,6 +1421,7 @@ void zmq::socket_base_t::update_pipe_options(int option_)
         for (pipes_t::size_type i = 0; i != pipes.size(); ++i)
         {
             pipes[i]->set_hwms(options.rcvhwm, options.sndhwm);
+            pipes[i]->send_hwms_to_peer(options.sndhwm, options.rcvhwm);
         }
     }
 
@@ -1678,6 +1686,16 @@ void zmq::socket_base_t::event_close_failed (const std::string &addr_, int err_)
 void zmq::socket_base_t::event_disconnected (const std::string &addr_, zmq::fd_t fd_)
 {
     event(addr_, fd_, ZMQ_EVENT_DISCONNECTED);
+}
+
+void zmq::socket_base_t::event_handshake_failed(const std::string &addr_, int err_)
+{
+    event(addr_, err_, ZMQ_EVENT_HANDSHAKE_FAILED);
+}
+
+void zmq::socket_base_t::event_handshake_succeed(const std::string &addr_, int err_)
+{
+    event(addr_, err_, ZMQ_EVENT_HANDSHAKE_SUCCEED);
 }
 
 void zmq::socket_base_t::event(const std::string &addr_, intptr_t value_, int type_)

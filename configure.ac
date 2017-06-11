@@ -37,9 +37,13 @@ AC_SUBST(PACKAGE_VERSION)
 # ZeroMQ version 3.1: 3:0:0 (ABI version 3)
 # ZeroMQ version 4.0: 4:0:0 (ABI version 4)
 # ZeroMQ version 4.1: 5:0:0 (ABI version 5)
+# ZeroMQ version 4.2.0: 6:0:1 (ABI version 5)
+# ZeroMQ version 4.2.1: 6:1:1 (ABI version 5)
+# ZeroMQ version 4.2.2: 6:2:1 (ABI version 5)
+# ZeroMQ version 4.2.3: 6:3:1 (ABI version 5)
 #
 # libzmq -version-info current:revision:age
-LTVER="5:0:0"
+LTVER="6:3:1"
 AC_SUBST(LTVER)
 
 # Take a copy of original flags
@@ -123,6 +127,22 @@ if test "x$zmq_militant" = "xyes"; then
     AC_DEFINE(ZMQ_ACT_MILITANT, 1, [Enable militant API assertions])
 fi
 
+# Memory mis-use detection
+AC_MSG_CHECKING([whether to enable ASan])
+AC_ARG_ENABLE(address-sanitizer, [AS_HELP_STRING([--enable-address-sanitizer=yes/no],
+                  [Build with GCC Address Sanitizer instrumentation])],
+                  [ZMQ_ASAN="$enableval"])
+
+if test "x${ZMQ_ASAN}" == "xyes"; then
+    CFLAGS="${CFLAGS} -fsanitize=address"
+    CXXFLAGS="${CXXFLAGS} -fsanitize=address"
+
+    AM_CONDITIONAL(ENABLE_ASAN, true)
+    AC_MSG_RESULT([yes])
+else
+    AM_CONDITIONAL(ENABLE_ASAN, false)
+    AC_MSG_RESULT([no])
+fi
 
 # By default compiling with -Werror except OSX.
 libzmq_werror="yes"
@@ -155,6 +175,11 @@ case "${host_os}" in
         fi
         AC_DEFINE(ZMQ_HAVE_LINUX, 1, [Have Linux OS])
         libzmq_on_linux="yes"
+
+        # dladdr/dlopen is in libdl on glibc
+        AC_SEARCH_LIBS([dladdr], [dl dld], [], [
+          AC_MSG_ERROR([unable to find the dladdr() function])
+        ])
 
         if test "x$libzmq_tipc_support" = "xyes"; then
             AC_DEFINE(ZMQ_HAVE_TIPC, 1, [Have TIPC support])
@@ -248,7 +273,7 @@ case "${host_os}" in
         LIBZMQ_CHECK_LANG_FLAG_PREPEND([-Ae])
         AC_CHECK_FUNCS(gethrtime)
         ;;
-    *mingw*)
+    *mingw*|*msys*)
         AC_DEFINE(ZMQ_HAVE_WINDOWS, 1, [Have Windows OS])
         AC_DEFINE(ZMQ_HAVE_MINGW, 1, [Have MinGW])
         AC_CHECK_HEADERS(windows.h)
@@ -264,7 +289,6 @@ case "${host_os}" in
         if test "x$enable_static" = "xyes"; then
             CPPFLAGS="-DZMQ_STATIC $CPPFLAGS"
         fi
-        
 	# Set FD_SETSIZE to 16384
 	CPPFLAGS=" -DFD_SETSIZE=16384 $CPPFLAGS"
         ;;
@@ -352,8 +376,14 @@ AC_ARG_ENABLE([eventfd],
 
 if test "x$zmq_enable_eventfd" = "xyes"; then
     # Check if we have eventfd.h header file.
-    AC_CHECK_HEADERS(sys/eventfd.h,
-        [AC_DEFINE(ZMQ_HAVE_EVENTFD, 1, [Have eventfd extension])])
+    AC_CHECK_HEADERS(sys/eventfd.h, [
+        AC_DEFINE(ZMQ_HAVE_EVENTFD, 1, [Have eventfd extension])
+        LIBZMQ_CHECK_EVENTFD_CLOEXEC([
+            AC_DEFINE([ZMQ_HAVE_EVENTFD_CLOEXEC],
+               [1],
+               [Whether EFD_CLOEXEC is defined and functioning.])
+            ])
+    ])
 fi
 
 # Conditionally build performance measurement tools
@@ -369,8 +399,6 @@ AC_ARG_ENABLE([curve-keygen],
     [AS_HELP_STRING([--disable-curve-keygen], [don't build curve-keygen tool [default=build]])],
     [zmq_enable_curve_keygen=$enableval],
     [zmq_enable_curve_keygen=yes])
-
-AM_CONDITIONAL(ENABLE_CURVE_KEYGEN, test "x$zmq_enable_curve_keygen" = "xyes")
 
 # Use c++ in subsequent tests
 AC_LANG_PUSH(C++)
@@ -415,9 +443,11 @@ AC_ARG_WITH([libgssapi_krb5], [AS_HELP_STRING([--with-libgssapi_krb5],
 # conditionally require libgssapi_krb5
 if test "x$require_libgssapi_krb5_ext" != "xno"; then
     AC_CHECK_HEADERS(gssapi/gssapi_generic.h)
-    AC_SEARCH_LIBS([gss_init_sec_context], [gssapi_krb5 gssapi],,
+    AC_SEARCH_LIBS([gss_init_sec_context], [gssapi_krb5 gssapi],
+        AC_DEFINE(HAVE_LIBGSSAPI_KRB5, [1], [Enabled GSSAPI security]),
         AC_MSG_ERROR(libgssapi_krb5 is needed for GSSAPI security))
 fi
+AM_CONDITIONAL(BUILD_GSSAPI, test "x$require_libgssapi_krb5_ext" != "xno")
 
 # Select curve encryption library, defaults to tweetnacl
 # To use libsodium instead, use --with-libsodium (must be installed)
@@ -444,6 +474,7 @@ elif test "x$with_libsodium" = "xyes"; then
     AC_DEFINE(ZMQ_HAVE_CURVE, [1], [Using curve encryption])
     AC_DEFINE(ZMQ_USE_LIBSODIUM, [1], [Using libsodium for curve encryption])
     curve_library="libsodium"
+    enable_curve="yes"
 
     # On Solaris, libsodium depends on libssp
     case "${host_os}" in
@@ -460,9 +491,11 @@ else
     AC_DEFINE(ZMQ_HAVE_CURVE, [1], [Using curve encryption])
     AC_DEFINE(ZMQ_USE_TWEETNACL, [1], [Using tweetnacl for curve encryption])
     curve_library="tweetnacl"
+    enable_curve="yes"
 fi
 
-AM_CONDITIONAL(ENABLE_CURVE_KEYGEN, test "x$enable_curve" = "xyes")
+AM_CONDITIONAL(ENABLE_CURVE_KEYGEN, test "x$enable_curve" = "xyes" -a "x$zmq_enable_curve_keygen" = "xyes")
+
 AM_CONDITIONAL(USE_LIBSODIUM, test "$curve_library" = "libsodium")
 AM_CONDITIONAL(USE_TWEETNACL, test "$curve_library" = "tweetnacl")
 
@@ -573,6 +606,56 @@ AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(perror gettimeofday clock_gettime memset socket getifaddrs freeifaddrs fork posix_memalign mkdtemp)
 AC_CHECK_HEADERS([alloca.h])
 
+# pthread_setname is non-posix, and there are at least 4 different implementations
+AC_MSG_CHECKING([whether signature of pthread_setname_np() has 1 argument])
+AC_COMPILE_IFELSE(
+	[AC_LANG_PROGRAM(
+		[[#include <pthread.h>]],
+		[[pthread_setname_np ("foo"); return 0;]])
+	],[
+		AC_MSG_RESULT([yes])
+		AC_DEFINE(ZMQ_HAVE_PTHREAD_SETNAME_1, [1],
+		    [Whether pthread_setname_np() has 1 argument])
+	],[
+		AC_MSG_RESULT([no])
+])
+AC_MSG_CHECKING([whether signature of pthread_setname_np() has 2 arguments])
+AC_COMPILE_IFELSE(
+	[AC_LANG_PROGRAM(
+		[[#include <pthread.h>]],
+		[[pthread_setname_np (pthread_self (), "foo"); return 0;]])
+	],[
+		AC_MSG_RESULT([yes])
+		AC_DEFINE(ZMQ_HAVE_PTHREAD_SETNAME_2, [1],
+		    [Whether pthread_setname_np() has 2 arguments])
+	],[
+		AC_MSG_RESULT([no])
+])
+AC_MSG_CHECKING([whether signature of pthread_setname_np() has 3 arguments])
+AC_COMPILE_IFELSE(
+	[AC_LANG_PROGRAM(
+		[[#include <pthread.h>]],
+		[[pthread_setname_np (pthread_self(), "foo", (void *)0); return 0;]])
+	],[
+		AC_MSG_RESULT([yes])
+		AC_DEFINE(ZMQ_HAVE_PTHREAD_SETNAME_3, [1],
+		    [Whether pthread_setname_np() has 3 arguments])
+	],[
+		AC_MSG_RESULT([no])
+])
+AC_MSG_CHECKING([whether pthread_set_name_np() exists])
+AC_COMPILE_IFELSE(
+	[AC_LANG_PROGRAM(
+		[[#include <pthread.h>]],
+		[[pthread_set_name_np (pthread_self(), "foo"); return 0;]])
+	],[
+		AC_MSG_RESULT([yes])
+		AC_DEFINE(ZMQ_HAVE_PTHREAD_SET_NAME, [1],
+		    [Whether pthread_set_name_np() exists])
+	],[
+		AC_MSG_RESULT([no])
+])
+
 LIBZMQ_CHECK_SOCK_CLOEXEC([
     AC_DEFINE([ZMQ_HAVE_SOCK_CLOEXEC],
         [1],
@@ -643,6 +726,7 @@ PKG_CHECK_MODULES(LIBUNWIND, [libunwind],
         AC_DEFINE(HAVE_LIBUNWIND, 1, [The libunwind library is to be used])
         AC_SUBST([LIBUNWIND_CFLAGS])
         AC_SUBST([LIBUNWIND_LIBS])
+        AC_CHECK_LIB([dl], [dladdr])
     ],
     [
         AC_MSG_WARN([Cannot find libunwind])

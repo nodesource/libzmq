@@ -1,4 +1,6 @@
 
+#include "precompiled.hpp"
+
 #include "platform.hpp"
 
 #if defined ZMQ_HAVE_NORM
@@ -413,7 +415,9 @@ void zmq::norm_engine_t::recv_data(NormObjectHandle object)
         if (NULL == rxState)
         {
             // This is a new stream, so create rxState with zmq decoder, etc
-            rxState = new NormRxStreamState(object, options.maxmsgsize);
+            rxState = new (std::nothrow) NormRxStreamState(object, options.maxmsgsize);
+            errno_assert(rxState);
+
             if (!rxState->Init())
             {
                 errno_assert(false);

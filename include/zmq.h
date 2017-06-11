@@ -41,7 +41,7 @@
 /*  Version macros for compile-time API version detection                     */
 #define ZMQ_VERSION_MAJOR 4
 #define ZMQ_VERSION_MINOR 2
-#define ZMQ_VERSION_PATCH 0
+#define ZMQ_VERSION_PATCH 3
 
 #define ZMQ_MAKE_VERSION(major, minor, patch) \
     ((major) * 10000 + (minor) * 100 + (patch))
@@ -110,6 +110,13 @@ extern "C" {
 #   endif
 #else
 #   include <stdint.h>
+#endif
+
+//  32-bit AIX's pollfd struct members are called reqevents and rtnevents so it
+//  defines compatibility macros for them. Need to include that header first to
+//  stop build failures since zmq_pollset_t defines them as events and revents.
+#ifdef ZMQ_HAVE_AIX
+    #include <poll.h>
 #endif
 
 
@@ -259,11 +266,11 @@ ZMQ_EXPORT int zmq_msg_close (zmq_msg_t *msg);
 ZMQ_EXPORT int zmq_msg_move (zmq_msg_t *dest, zmq_msg_t *src);
 ZMQ_EXPORT int zmq_msg_copy (zmq_msg_t *dest, zmq_msg_t *src);
 ZMQ_EXPORT void *zmq_msg_data (zmq_msg_t *msg);
-ZMQ_EXPORT size_t zmq_msg_size (zmq_msg_t *msg);
-ZMQ_EXPORT int zmq_msg_more (zmq_msg_t *msg);
-ZMQ_EXPORT int zmq_msg_get (zmq_msg_t *msg, int property);
+ZMQ_EXPORT size_t zmq_msg_size (const zmq_msg_t *msg);
+ZMQ_EXPORT int zmq_msg_more (const zmq_msg_t *msg);
+ZMQ_EXPORT int zmq_msg_get (const zmq_msg_t *msg, int property);
 ZMQ_EXPORT int zmq_msg_set (zmq_msg_t *msg, int property, int optval);
-ZMQ_EXPORT const char *zmq_msg_gets (zmq_msg_t *msg, const char *property);
+ZMQ_EXPORT const char *zmq_msg_gets (const zmq_msg_t *msg, const char *property);
 
 /******************************************************************************/
 /*  0MQ socket definition.                                                    */
@@ -343,8 +350,6 @@ ZMQ_EXPORT const char *zmq_msg_gets (zmq_msg_t *msg, const char *property);
 #define ZMQ_HANDSHAKE_IVL 66
 #define ZMQ_SOCKS_PROXY 68
 #define ZMQ_XPUB_NODROP 69
-//  All options after this is for version 4.2 and still *draft*
-//  Subject to arbitrary change without notice
 #define ZMQ_BLOCKY 70
 #define ZMQ_XPUB_MANUAL 71
 #define ZMQ_XPUB_WELCOME_MSG 72
@@ -431,7 +436,7 @@ ZMQ_EXPORT int zmq_socket_monitor (void *s, const char *addr, int events);
 
 
 /******************************************************************************/
-/*  I/O multiplexing.                                                         */
+/*  Deprecated I/O multiplexing. Prefer using zmq_poller API                  */
 /******************************************************************************/
 
 #define ZMQ_POLLIN 1
@@ -556,6 +561,13 @@ ZMQ_EXPORT void zmq_threadclose (void* thread);
 #define ZMQ_SCATTER 17
 #define ZMQ_DGRAM 18
 
+/*  DRAFT 0MQ socket events and monitoring                                    */
+#define ZMQ_EVENT_HANDSHAKE_FAILED  0x0800
+#define ZMQ_EVENT_HANDSHAKE_SUCCEED 0x1000
+
+/*  DRAFT Context options                                                     */
+#define ZMQ_MSG_T_SIZE 6
+
 /*  DRAFT Socket methods.                                                     */
 ZMQ_EXPORT int zmq_join (void *s, const char *group);
 ZMQ_EXPORT int zmq_leave (void *s, const char *group);
@@ -618,6 +630,18 @@ ZMQ_EXPORT int   zmq_timers_set_interval (void *timers, int timer_id, size_t int
 ZMQ_EXPORT int   zmq_timers_reset (void *timers, int timer_id);
 ZMQ_EXPORT long  zmq_timers_timeout (void *timers);
 ZMQ_EXPORT int   zmq_timers_execute (void *timers);
+
+/******************************************************************************/
+/*  GSSAPI socket options to set name type                                    */
+/******************************************************************************/
+
+#define ZMQ_GSSAPI_PRINCIPAL_NAMETYPE 90
+#define ZMQ_GSSAPI_SERVICE_PRINCIPAL_NAMETYPE 91
+
+/*  GSSAPI principal name types                                               */
+#define ZMQ_GSSAPI_NT_HOSTBASED 0
+#define ZMQ_GSSAPI_NT_USER_NAME 1
+#define ZMQ_GSSAPI_NT_KRB5_PRINCIPAL 2
 
 #endif // ZMQ_BUILD_DRAFT_API
 

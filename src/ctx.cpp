@@ -301,6 +301,9 @@ int zmq::ctx_t::get (int option_)
     else
     if (option_ == ZMQ_MAX_MSGSZ)
         rc = max_msgsz;
+    else
+    if (option_ == ZMQ_MSG_T_SIZE)
+        rc = sizeof (zmq_msg_t);
     else {
         errno = EINVAL;
         rc = -1;
@@ -409,6 +412,9 @@ void zmq::ctx_t::start_thread (thread_t &thread_, thread_fn *tfn_, void *arg_) c
 {
     thread_.start(tfn_, arg_);
     thread_.setSchedulingParameters(thread_priority, thread_sched_policy);
+#ifndef ZMQ_HAVE_ANDROID
+    thread_.setThreadName ("ZMQ background");
+#endif
 }
 
 void zmq::ctx_t::send_command (uint32_t tid_, const command_t &command_)

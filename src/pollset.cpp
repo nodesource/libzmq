@@ -55,7 +55,7 @@ zmq::pollset_t::~pollset_t ()
     //  Wait till the worker thread exits.
     worker.stop ();
 
-    close (pollset_fd);
+    pollset_destroy (pollset_fd);
     for (retired_t::iterator it = retired.begin (); it != retired.end (); ++it)
         LIBZMQ_DELETE(*it);
 }
@@ -98,13 +98,13 @@ void zmq::pollset_t::rm_fd (handle_t handle_)
     pc.events = 0;
     pollset_ctl (pollset_fd, &pc, 1);
 
+    fd_table [pe->fd] = NULL;
+
     pe->fd = retired_fd;
     retired.push_back (pe);
 
     //  Decrease the load metric of the thread.
     adjust_load (-1);
-
-    fd_table [pe->fd] = NULL;
 }
 
 void zmq::pollset_t::set_pollin (handle_t handle_)
