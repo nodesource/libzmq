@@ -1582,7 +1582,9 @@ void zmq::socket_base_t::extract_flags (msg_t *msg_)
 
 int zmq::socket_base_t::monitor (const char *addr_, int events_)
 {
+//fprintf(stderr, "trying to get lock\n");
     scoped_lock_t lock(monitor_sync);
+//fprintf(stderr, "got lock\n");
     
     if (unlikely (ctx_terminated)) {
         errno = ETERM;
