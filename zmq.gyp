@@ -70,7 +70,7 @@
   'targets': [
     {
       'target_name': 'libzmq',
-      'type': '<(library)',
+      'type': 'static_library',
       'includes': [ 'zmq.gypi' ],
       'sources': [ '<@(zmqsources)' ],
       'copies': [{
