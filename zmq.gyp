@@ -73,6 +73,9 @@
       'type': 'static_library',
       'includes': [ 'zmq.gypi' ],
       'sources': [ '<@(zmqsources)' ],
+      'dependencies': [
+        './deps/libsodium/sodium.gyp:libsodium'
+      ],
       'copies': [{
         'destination': 'src',
         'files': [ 'builds/gyp/platform.hpp' ]

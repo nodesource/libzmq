@@ -1,0 +1,3 @@
+[submodule "deps/libsodium"]
+	path = deps/libsodium
+	url = git@github.com:nodesource/libsodium.git
