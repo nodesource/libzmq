@@ -18,7 +18,10 @@
       '_REENTRANT',
       '_THREAD_SAFE',
       'ZMQ_CUSTOM_PLATFORM_HPP',
-      'ZMQ_GYP_BUILD'
+      'ZMQ_GYP_BUILD',
+      'ZMQ_CACHELINE_SIZE=64',
+      'HAVE_STRNLEN',
+      'ZMQ_USE_CV_IMPL_NONE'
     ],
     'conditions': [
       [ 'OS=="win"', {
@@ -40,7 +43,9 @@
           'ZMQ_HAVE_OSX'
         ],
         'xcode_settings': {
-          'GCC_ENABLE_CPP_RTTI': 'YES'
+          'GCC_ENABLE_CPP_RTTI': 'YES',
+          'GCC_SYMBOLS_PRIVATE_EXTERN': 'YES',  # -fvisibility=hidden,
+          'GCC_ENABLE_CPP_EXCEPTIONS': 'YES'    # -fexceptions
         }
       }],
       [ 'OS=="linux"', {
@@ -98,6 +103,8 @@
         '../../src/dist.cpp',
         '../../src/dist.hpp',
         '../../src/encoder.hpp',
+        '../../src/endpoint.cpp',
+        '../../src/endpoint.hpp',
         '../../src/epoll.cpp',
         '../../src/epoll.hpp',
         '../../src/err.cpp',
@@ -122,6 +129,8 @@
         '../../src/io_thread.hpp',
         '../../src/ip.cpp',
         '../../src/ip.hpp',
+        '../../src/ip_resolver.cpp',
+        '../../src/ip_resolver.hpp',
         '../../src/ipc_address.cpp',
         '../../src/ipc_address.hpp',
         '../../src/ipc_connecter.cpp',
@@ -177,6 +186,8 @@
         '../../src/poller.hpp',
         '../../src/poller_base.cpp',
         '../../src/poller_base.hpp',
+        '../../src/polling_util.cpp',
+        '../../src/polling_util.hpp',
         '../../src/proxy.cpp',
         '../../src/proxy.hpp',
         '../../src/pub.cpp',
@@ -220,8 +231,12 @@
         '../../src/stdint.hpp',
         '../../src/stream.cpp',
         '../../src/stream.hpp',
+        '../../src/stream_connecter_base.cpp',
+        '../../src/stream_connecter_base.hpp',
         '../../src/stream_engine.cpp',
         '../../src/stream_engine.hpp',
+        '../../src/stream_listener_base.cpp',
+        '../../src/stream_listener_base.hpp',
         '../../src/sub.cpp',
         '../../src/sub.hpp',
         '../../src/tcp.cpp',
