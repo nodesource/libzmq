@@ -43,7 +43,8 @@
 #define ZMQ_USE_TWEETNACL 1
 
 #if defined ZMQ_HAVE_WINDOWS
-#   define ZMQ_USE_SELECT 1
+#   define ZMQ_POLL_BASED_ON_POLL 1
+#   define ZMQ_IOTHREAD_POLLER_USE_EPOLL 1
 
 #elif defined ZMQ_HAVE_OSX
 #   define ZMQ_USE_KQUEUE 1
@@ -55,6 +56,8 @@
 #   define ZMQ_HAVE_TCP_KEEPINTVL 1
 #   define ZMQ_HAVE_UIO 1
 #   define HAVE_FORK 1
+#   define ZMQ_IOTHREAD_POLLER_USE_KQUEUE 1
+#   define ZMQ_POLL_BASED_ON_POLL 1
 
 #elif defined ZMQ_HAVE_LINUX
 #   define ZMQ_USE_EPOLL 1
@@ -72,7 +75,8 @@
 #   define HAVE_CLOCK_GETTIME 1
 #   define HAVE_FORK 1
 #   define HAVE_ACCEPT4 1
-
+#   define ZMQ_POLL_BASED_ON_POLL 1
+#   define ZMQ_IOTHREAD_POLLER_USE_EPOLL 1
 #else
 #   error "No platform defined, abandoning"
 #endif
