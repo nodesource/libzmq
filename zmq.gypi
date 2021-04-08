@@ -9,6 +9,8 @@
       'src/atomic_counter.hpp',
       'src/atomic_ptr.hpp',
       'src/blob.hpp',
+      'src/channel.cpp',
+      'src/channel.hpp',
       'src/client.cpp',
       'src/client.hpp',
       'src/clock.cpp',
@@ -107,6 +109,8 @@
       'src/own.hpp',
       'src/pair.cpp',
       'src/pair.hpp',
+      'src/peer.cpp',
+      'src/peer.hpp',
       'src/pgm_receiver.cpp',
       'src/pgm_receiver.hpp',
       'src/pgm_sender.cpp',
@@ -142,6 +146,8 @@
       'src/raw_decoder.hpp',
       'src/raw_encoder.cpp',
       'src/raw_encoder.hpp',
+      'src/raw_engine.cpp',
+      'src/raw_engine.hpp',
       'src/reaper.cpp',
       'src/reaper.hpp',
       'src/rep.cpp',
@@ -173,8 +179,8 @@
       'src/stream.hpp',
       'src/stream_connecter_base.cpp',
       'src/stream_connecter_base.hpp',
-      'src/stream_engine.cpp',
-      'src/stream_engine.hpp',
+      'src/stream_engine_base.cpp',
+      'src/stream_engine_base.hpp',
       'src/stream_listener_base.cpp',
       'src/stream_listener_base.hpp',
       'src/sub.cpp',
@@ -214,6 +220,8 @@
       'src/v2_encoder.cpp',
       'src/v2_encoder.hpp',
       'src/v2_protocol.hpp',
+      'src/v3_1_encoder.cpp',
+      'src/v3_1_encoder.hpp',
       'src/vmci.cpp',
       'src/vmci.hpp',
       'src/vmci_address.cpp',
@@ -235,7 +243,9 @@
       'src/zap_client.cpp',
       'src/zap_client.hpp',
       'src/zmq.cpp',
-      'src/zmq_utils.cpp'
+      'src/zmq_utils.cpp',
+      'src/zmtp_engine.cpp',
+      'src/zmtp_engine.hpp'
     ]
   }
 }
